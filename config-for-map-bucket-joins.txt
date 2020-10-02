@@ -1,0 +1,28 @@
+-- Setting for map join
+- smaller table will be held in memory to the process faster
+set hive.auto.convert.join=true;
+set hive.auto.convert.join.noconditionaltask=true;
+set hive.auto.convert.join.noconditionaltask.size=20971520
+set hive.auto.convert.join.use.nonstaged=true;
+set hive.mapjoin.smalltable.filesize = 30000000; 
+
+-- enforce map join 
+Select /*+ MAPJOIN(b) */ a.key, a.value from a join b on a.key = b.key
+
+
+-- Setting for skew join
+-- Takes skewed keys and stores intermediately and runs the map-side joins for skewed keys alone separately
+-- So the data is scanned twice
+set hive.optimize.skewjoin = true;
+set hive.skewjoin.key=500000;
+set hive.skewjoin.mapjoin.map.tasks=10000;
+set hive.skewjoin.mapjoin.min.split=33554432;
+
+
+-- Setting for Bucket Map Join
+-- no data copy required, map-side join and join happening on same local node itself
+-- there should be equal no of buckets, bucketed key in  both tables to join
+set hive.enforce.bucketing = true;
+set hive.optimize.bucketmapjoin = true;
+set hive.optimize.bucketmapjoin.sortedmerge = true;
+set hive.input.format=org.apache.hadoop.hive.ql.io.BucketizedHiveInputFormat;
