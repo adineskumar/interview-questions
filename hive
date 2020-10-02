@@ -1,0 +1,73 @@
+1. What is the difference between static and dynamic partitioning ?
+
+   Static Partitioning :  Suitable for cases where you have limited and well known set of values.
+                          You have to manually decide how many partitions the table will have, its the values for partitions
+                          You have to make sure that you are loading right data into right partition while loading itself
+                          By default, hive will disable dynamic partitioning
+                          
+    -- Source data is in the local file system, 
+	  -- We are creating an external table pointing to an non-existing directory '/user/gasons/data/emp'
+    -- While creating the partition table, please dont mention the partitioned column in the create table script
+    -- Partitioned column should only be mentioned in the PARTITIONED BY clause
+
+    -- Non Partitioned Table loading CSV data
+    CREATE EXTERNAL TABLE employee (
+     empno int,
+     ename string,
+     job string,
+     mgr int,
+     hiredate string,
+     sal int,
+     comm int,
+     deptno int
+    ) ROW FORMAT DELIMITED
+     FIELDS TERMINATED BY ','
+     STORED AS TEXTFILE
+     LOCATION '/user/gasons/data/emp'
+     TBLPROPERTIES("skip.header.line.count"="1");
+
+    -- Partitioned Table loading CSV data
+    CREATE EXTERNAL TABLE employee_dept (
+     empno int,
+     ename string,
+     job string,
+     mgr int,
+     hiredate string,
+     sal int,
+     comm int
+    ) PARTITIONED BY (
+     deptno int
+    ) ROW FORMAT DELIMITED
+     FIELDS TERMINATED BY ','
+     STORED AS TEXTFILE 
+     LOCATION '/user/gasons/data/emp_part';
+
+
+    -- Once the above table is created, load the data into the table from local file system
+    -- Here while loading you should make sure, you are loading right data to right partition
+    -- Even if you try to load other partitions data specifying different partition value, the system loads it as such
+    -- This is the one drawback in static partitioning, also if you have to add partitions each time you load new data in it manually
+
+    LOAD DATA LOCAL INPATH '/home/gasons/Downloads/dinesh/DataSet/EmployeeDataSet/emp.csv' INTO TABLE employee_dept PARTITION (deptno=200);
+
+    -- To add a new partition in a table, use
+    ALTER TABLE employee_dept ADD IF NOT EXISTS PARTITION(deptno=10);
+
+    ALTER TABLE employee_dept ADD IF NOT EXISTS PARTITION(deptno=10) LOCATION '/user/gasons/data/emp_part/deptno=10';
+
+    -- Insert data into the above created partition 'deptno=10' from another table.
+    -- Dont include the partition column in select list
+    INSERT INTO employee_dept PARTIITION(deptno=10) SELECT empno, ename, job, mgr, hiredate, sal, comm FROM employee where deptno=10;
+
+    -- Drop a partition
+    ALTER TABLE employee_dept DROP IF EXISTS PARTITION(deptno=10)
+
+
+    Static Partitioning : By Default hive dynamic partitioning is disabled. This is to protect us from creating huge number of partitions accidentally
+                          You can enable dynamic Partitioning by the below commands
+                          
+    SET hive.exec.dynamic.partition=true;
+    SET hive.exec.dynamic.partition.mode=nonstrict;
+    
+    -- Execute below command so that all the partitions will be created by its own and the data will be populated as well
+    INSERT OVERWRITE TABLE employee_dept SELECT empno, ename, job, mgr, hiredate, sal, comm, deptno FROM employee;
