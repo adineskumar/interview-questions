@@ -1,0 +1,131 @@
+-- SORT BY
+  SORT the rows based on columns per reduce. 
+  if there are more than one reducer, then the output per reducer will be sorted, but the order of total output is not guaranteed to be sorted.
+  
+  set mapred.reduce.tasks=2;  // no of reduce task set to 2
+  select empno, sal from employee sort by sal; 
+  
+  -- Sample Output, see the data is not globally sorted
+    -- Reducer 1
+    7369	800
+    7900	950
+    7876	1100
+    7521	1250
+    7934	1300
+    7698	2850
+    7566	2975
+    7902	3000
+    7839	5000
+    -- Reducer 2
+    7654	1250
+    7844	1500
+    7499	1600
+    7782	2450
+    7788	3000
+
+-- ORDER BY 
+  Provides Global sorting, but it has to go through only reducer at the end which impacts performance
+  
+  -- select empno, sal from employee order by sal; 
+    7369	800
+    7900	950
+    7876	1100
+    7654	1250
+    7521	1250
+    7934	1300
+    7844	1500
+    7499	1600
+    7782	2450
+    7698	2850
+    7566	2975
+    7902	3000
+    7788	3000
+    7839	5000
+
+-- DISTRIBUTE BY
+    Distributes the records to different reducers based on the column values. All rows with same distribute by columns will go to the same reducer
+    
+    set mapred.reduce.tasks=2;
+    select empno, sal from employee distribute by empno;
+    -- Notice that you wont see the order in the keys, as it is just distributed
+    -- All Odds to one reducer and Evens to another reducer
+    -- Reducer 1
+      7654	1250
+      7902	3000
+      7934	1300
+      7900	950
+      7876	1100
+      7844	1500
+      7788	3000
+      7782	2450
+      7698	2850
+      7566	2975
+    -- Reducer 2
+      7839	5000
+      7369	800
+      7521	1250
+      7499	1600
+
+-- DISTRIBUTE BY along with SORT BY
+    
+    set mapred.reduce.tasks=2;
+    select empno, sal from employee distribute by empno sort by sal;
+    -- Reducer 1
+    7900	950
+    7876	1100
+    7654	1250
+    7934	1300
+    7844	1500
+    7782	2450
+    7698	2850
+    7566	2975
+    7788	3000
+    7902	3000
+    -- Reducer 2
+    7369	800
+    7521	1250
+    7499	1600
+    7839	5000
+    
+    set mapred.reduce.tasks=2;
+    select empno, sal from employee distribute by empno sort by empno;
+    -- See the keys are distributed on then it is sorted per reducer
+    -- Reducer 1
+    7566	2975
+    7654	1250
+    7698	2850
+    7782	2450
+    7788	3000
+    7844	1500
+    7876	1100
+    7900	950
+    7902	3000
+    7934	1300
+    -- Reducer 2
+    7369	800
+    7499	1600
+    7521	1250
+    7839	5000
+    
+-- CLUSTER BY ==> DISTRIBUTE BY and SORT BY on same column
+    set mapred.reduce.tasks=2;
+    select empno, sal from employee cluster by empno;
+    
+    -- Reducer 1
+    7566	2975
+    7654	1250
+    7698	2850
+    7782	2450
+    7788	3000
+    7844	1500
+    7876	1100
+    7900	950
+    7902	3000
+    7934	1300
+    -- Reducer 2
+    7369	800
+    7499	1600
+    7521	1250
+    7839	5000
+
+  
