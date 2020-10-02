@@ -1,0 +1,44 @@
+What is the difference between Partitioning and Bucketing?
+
+  Partitioning helps to organize data in a logical fashion, by creating subdirectory per partition value.
+  Partitioning helps to scan only respective data, rather than scanning entire data sets
+  
+  When partitioning creates large number of subdirectories, will create performance impact on Namenode.
+  Also partitioning cannot help if there is data skews.
+  In such scenarios bucketing can be used
+  Bucketing helps to decompose data sets in a more managable way.
+  Basically if the partition feild have high cardinality then just use bucketing on that field.
+  
+  CREATE TABLE mytable ( 
+         name string,
+         city string,
+         employee_id int ) 
+PARTITIONED BY (year STRING, month STRING, day STRING) 
+CLUSTERED BY (employee_id) INTO 256 BUCKETS.
+
+-- this will create a directory structure as '/user/hive/warehouse/mytable/y=2015/m=12/d=02'
+-- further there would be 256 files under day folder
+
+-- Another example
+CREATE EXTERNAL TABLE employee_buck (
+ empno int,
+ ename string,
+ job string,
+ mgr int,
+ hiredate string,
+ sal int,
+ comm int
+) PARTITIONED BY (
+ deptno int
+) CLUSTERED BY (
+ job
+) INTO 3 buckets 
+ ROW FORMAT DELIMITED
+ FIELDS TERMINATED BY ','
+ STORED AS TEXTFILE 
+ LOCATION '/user/gasons/data/emp_buck';
+
+SET hive.exec.dynamic.partition.mode=nonstrict;
+SET hive.exec.dynamic.partition=true;
+
+INSERT OVERWRITE TABLE employee_buck PARTITION(deptno) SELECT empno, ename, job, mgr, hiredate, sal, comm, deptno FROM employee;
